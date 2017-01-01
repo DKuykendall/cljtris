@@ -1,7 +1,5 @@
-(ns cljtris.core)
+(ns cljtris.core (:require [reagent.core :as r]))
 
-(.log js/console "ding")
+(defn first-component [] [:div "Hello world!"])
 
-(enable-console-print!)
-
-(println "Hello world!!")
+(r/render-component [first-component] (.-body js/document))
