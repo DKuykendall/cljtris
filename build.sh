@@ -1,1 +1,1 @@
-java -cp cljs.jar:src clojure.main watch.clj
+java -cp cljs.jar:src clojure.main repl.clj
