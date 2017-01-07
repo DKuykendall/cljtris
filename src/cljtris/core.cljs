@@ -1,6 +1,10 @@
 (ns cljtris.core (:require [reagent.core :as r]))
 
-(def size 50)
+(def size 20)
+
+(def height 24)
+
+(def width 10)
 
 (def board (r/atom []))
 
@@ -8,8 +12,7 @@
                                     :squares(for [[x y] squares]
                                               {:x x
                                                :y y
-                                               :color color
-                                               :active true})})
+                                               :color color })})
 
 (def line (create-piece "red" [[0 0] [1 0] [2 0] [3 0]]))
 
@@ -38,12 +41,39 @@
                      :top  (inc (* size (inc y)))}
              :key (gensym)}])))
 
+(defn move [dir] (println dir))
+
+(defn rotate [])
+
+(defn fast-drop [])
+
+(defn keydown [e] 
+  (case (.-keyCode e)
+    ;left
+    37 (move -1)
+    ;right
+    39 (move 1)
+    ;uo
+    38 (rotate)
+    ;down
+    40 (fast-drop)
+    nil))
+
+(defn on-other-piece? [squares board] 
+  (let [result (for [square squares
+                     piece board]
+                 (seq (filter #(and (= (:x square) (:x %))
+                               (= (:y square) (:y %))
+                               (not (:active piece))) (:squares piece))))]
+    (seq (remove nil? result))))
+
 (defn fall [board] (for [piece board] 
                      (if (:active piece)
                        (let [new-squares 
                              (for [square (:squares piece)]
                                (assoc square :y (inc (:y square))))]
-                         (if (some #(> (:y %) 10) new-squares)
+                         (if (or (some #(> (:y %) (dec height)) new-squares)
+                                 (on-other-piece? new-squares board))
                            (do (new-piece) {:active false :squares (:squares piece)})
                            {:active true :squares new-squares}))
                        piece)))
@@ -52,8 +82,10 @@
 
 (defonce fall-event (js/setInterval swap 1000))
 
+(defonce key-event (.addEventListener js/document "keydown" keydown))
+
 (new-piece)
 
 (defn first-component [] (into [:div] (render @board)))
 
-(r/render-component [first-component] (.-body js/document))
+(r/render-component [first-component] (.getElementById js/document "app"))
