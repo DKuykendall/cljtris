@@ -6,7 +6,7 @@
 
 (def width 10)
 
-(def board (r/atom {:active nil :blocks [] :score 0}))
+(def board (r/atom {:active nil :next nil :blocks [] :score 0}))
 
 (defn create-piece [color squares] (for [[x y] squares]
                                      {:x x
@@ -29,8 +29,6 @@
 
 (def pieces [line square s z L reverse-L T])
 
-(defn add-piece [board] (assoc board :active (rand-nth pieces)))
-
 (defn create-block [{x :x y :y color :color}]
   [:div {:style {:width (str (- size 2) "px")
                  :height (str (- size 2) "px")
@@ -42,8 +40,9 @@
 
 (defn render [board]
   (let [active-squares (for [square (:active board)] (create-block square))
-        pile-squares   (for [square (:blocks board)] (create-block square))]
-    (concat active-squares pile-squares)))
+        pile-squares   (for [square (:blocks board)] (create-block square))
+        next-squares   (for [square (:next   board)] (create-block (update square :x #(+ width 2 %))))]
+    (concat active-squares pile-squares next-squares)))
 
 (defn on-other-piece? [squares blocks]
   (let [result (for [square squares]
@@ -51,6 +50,14 @@
                                     (= (:y square) (:y %))) 
                               blocks)))]
     (seq (remove nil? result))))
+
+(defn add-piece [board] (if (not (on-other-piece? (:next board) 
+                                                  (:blocks board)))
+                          (assoc board :active (if (:next board) 
+                                                 (:next board)
+                                                 (rand-nth pieces))
+                                       :next (rand-nth pieces))
+                          (assoc board :active nil)))
 
 (defn move [dir] 
   (swap! board assoc :active  (let [new-piece (for [square (:active @board)] 
