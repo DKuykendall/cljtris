@@ -6,7 +6,7 @@
 
 (def width 10)
 
-(def board (r/atom {:active nil :blocks []}))
+(def board (r/atom {:active nil :blocks [] :score 0}))
 
 (defn create-piece [color squares] (for [[x y] squares]
                                      {:x x
@@ -91,6 +91,22 @@
     40 (fast-drop)
     nil))
 
+(defn find-complete-rows [] 
+  (set (map first 
+            (filter #(= 10 (second %)) 
+                    (frequencies (map :y (:blocks @board)))))))
+
+(defn remove-rows [complete-rows] 
+  (loop [rows (sort complete-rows) 
+         blocks (:blocks @board)]
+    (if (empty? rows)
+      blocks
+      (let [head (first rows)
+            tail (rest rows)
+            less (filter #(< (:y %) head) blocks) 
+            grt  (filter #(> (:y %) head) blocks)]
+        (recur tail 
+               (concat grt (map #(assoc % :y (inc (:y %))) less)))))))
 
 (defn fall [board] (let [piece (:active board)
                          new-piece
@@ -100,7 +116,10 @@
                              (on-other-piece? new-piece (:blocks board)))
                        (add-piece (assoc board :blocks (concat (:active board)
                                                                (:blocks board))))
-                       (assoc board :active new-piece))))
+                       (let [complete-rows (find-complete-rows)] 
+                         (assoc board :active new-piece
+                                      :blocks (remove-rows complete-rows)
+                                      :score (+ (:score board) (count complete-rows)))))))
 
 (defn swap [] (swap! board fall))
 
@@ -110,9 +129,10 @@
 
 (swap! board add-piece @board)
 
-(defn first-component [] (into [:div {:style {:outline "1px solid black" 
+(defn first-component [] [:div (into [:div {:style {:outline "1px solid black" 
                                               :width (* (inc width) size)
                                               :height (* (inc height) size)}}] 
-                               (render @board)))
+                               (render @board))
+                          [:p (str "Score - " (:score @board))]])
 
 (r/render-component [first-component] (.getElementById js/document "app"))
