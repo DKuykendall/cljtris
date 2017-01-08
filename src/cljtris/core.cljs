@@ -40,7 +40,7 @@
 
 (defn render [board]
   (let [active-squares (for [square (:active board)] (create-block square))
-        drop-squares   (for [square (:drop   board)] 
+        drop-squares   (for [square (:drop   board)]
                          (assoc-in (create-block square)[1 :style :opacity] 0.25))
         pile-squares   (for [square (:blocks board)] (create-block square))
         next-squares   (for [square (:next   board)] (create-block (update square :x #(+ width 2 %))))]
@@ -49,7 +49,7 @@
 (defn on-other-piece? [squares blocks]
   (let [result (for [square squares]
                  (seq (filter #(and (= (:x square) (:x %))
-                                    (= (:y square) (:y %))) 
+                                    (= (:y square) (:y %)))
                               blocks)))]
     (seq (remove nil? result))))
 
@@ -63,9 +63,9 @@
           piece
           (recur new-piece))))))
 
-(defn add-piece [board] (if (not (on-other-piece? (:next board) 
+(defn add-piece [board] (if (not (on-other-piece? (:next board)
                                                   (:blocks board)))
-                          (let [new-piece (if (:next board) 
+                          (let [new-piece (if (:next board)
                                             (:next board)
                                             (rand-nth pieces))]
                             (assoc board :active new-piece
@@ -73,8 +73,8 @@
                                    :drop (find-drop new-piece board)))
                           (assoc board :active nil)))
 
-(defn move [dir] 
-  (let [new-piece (for [square (:active @board)] 
+(defn move [dir]
+  (let [new-piece (for [square (:active @board)]
                     (assoc square :x (+ dir (:x square))))]
     (if (or (some #(or (< (:x %) 0) (> (:x %) (dec width))) new-piece)
             (on-other-piece? new-piece (:blocks @board)))
@@ -82,7 +82,7 @@
       (swap! board assoc :active new-piece
                          :drop (find-drop new-piece @board)))))
 
-(defn rotate [] 
+(defn rotate []
   (let [rotated
         (loop [center (second (:active @board))
                new-piece (for [square (:active @board)]
@@ -91,7 +91,7 @@
                                  new-x (+ (:x center) rel-y)
                                  new-y (+ (:y center) (- rel-x))]
                              (assoc square :x new-x :y new-y)))]
-          (cond (some #(< (:x %) 0) new-piece) 
+          (cond (some #(< (:x %) 0) new-piece)
                 (recur center (map #(update % :x inc) new-piece))
                 (some #(> (:x %) (dec width)) new-piece)
                 (recur center (map #(update % :x dec) new-piece))
@@ -114,24 +114,24 @@
     40 (fast-drop)
     nil))
 
-(defn find-complete-rows [] 
-  (set (map first 
-            (filter #(= 10 (second %)) 
+(defn find-complete-rows []
+  (set (map first
+            (filter #(= 10 (second %))
                     (frequencies (map :y (:blocks @board)))))))
 
-(defn remove-rows [complete-rows] 
-  (loop [rows (sort complete-rows) 
+(defn remove-rows [complete-rows]
+  (loop [rows (sort complete-rows)
          blocks (:blocks @board)]
     (if (empty? rows)
       blocks
       (let [head (first rows)
             tail (rest rows)
-            less (filter #(< (:y %) head) blocks) 
+            less (filter #(< (:y %) head) blocks)
             grt  (filter #(> (:y %) head) blocks)]
-        (recur tail 
+        (recur tail
                (concat grt (map #(assoc % :y (inc (:y %))) less)))))))
 
-(defn fall [board] (if (:active board) 
+(defn fall [board] (if (:active board)
                      (let [piece (:active board)
                            new-piece
                            (for [square piece]
@@ -140,7 +140,7 @@
                                (on-other-piece? new-piece (:blocks board)))
                          (add-piece (assoc board :blocks (concat (:active board)
                                                                  (:blocks board))))
-                         (let [complete-rows (find-complete-rows)] 
+                         (let [complete-rows (find-complete-rows)]
                            (assoc board :active new-piece
                                   :blocks (remove-rows complete-rows)
                                   :score (+ (:score board) (count complete-rows))))))
@@ -154,9 +154,9 @@
 
 (swap! board add-piece @board)
 
-(defn first-component [] [:div (into [:div {:style {:outline "1px solid black" 
+(defn first-component [] [:div (into [:div {:style {:outline "1px solid black"
                                               :width (* (inc width) size)
-                                              :height (* (inc height) size)}}] 
+                                              :height (* (inc height) size)}}]
                                (render @board))
                           [:p (str "Score - " (:score @board))]])
 
