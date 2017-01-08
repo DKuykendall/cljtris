@@ -9,9 +9,9 @@
 (def board (r/atom {:active nil :blocks []}))
 
 (defn create-piece [color squares] (for [[x y] squares]
-                                              {:x x
-                                               :y y
-                                               :color color }))
+                                     {:x x
+                                      :y y
+                                      :color color }))
 
 (def line (create-piece "red" [[0 0] [1 0] [2 0] [3 0]]))
 
@@ -25,18 +25,20 @@
 
 (def reverse-L (create-piece "purple" [[1 0] [1 1] [1 2] [0 2]]))
 
-(def pieces [line square s z L reverse-L])
+(def T (create-piece "cyan" [[0 0] [1 0] [2 0] [1 1]]))
+
+(def pieces [line square s z L reverse-L T])
 
 (defn add-piece [board] (assoc board :active (rand-nth pieces)))
 
 (defn create-block [{x :x y :y color :color}]
-        [:div {:style {:width (str (- size 2) "px")
-                       :height (str (- size 2) "px")
-                       :background-color color
-                       :position "absolute"
-                       :left (inc (* size (inc x)))
-                       :top  (inc (* size (inc y)))}
-               :key (gensym)}])
+  [:div {:style {:width (str (- size 2) "px")
+                 :height (str (- size 2) "px")
+                 :background-color color
+                 :position "absolute"
+                 :left (inc (* size (inc x)))
+                 :top  (inc (* size (inc y)))}
+         :key (gensym)}])
 
 (defn render [board]
   (let [active-squares (for [square (:active board)] (create-block square))
@@ -52,13 +54,28 @@
 
 (defn move [dir] 
   (swap! board assoc :active  (let [new-piece (for [square (:active @board)] 
-                             (assoc square :x (+ dir (:x square))))]
-             (if (or (some #(or (< (:x %) 0) (> (:x %) (dec width))) new-piece)
-                     (on-other-piece? new-piece (:blocks @board)))
-               (:active @board)
-               new-piece))))
+                                                (assoc square :x (+ dir (:x square))))]
+                                (if (or (some #(or (< (:x %) 0) (> (:x %) (dec width))) new-piece)
+                                        (on-other-piece? new-piece (:blocks @board)))
+                                  (:active @board)
+                                  new-piece))))
 
-(defn rotate [])
+(defn rotate [] 
+  (swap! board assoc :active 
+         (loop [center (second (:active @board))
+                new-piece (for [square (:active @board)]
+                            (let [rel-x (- (:x center) (:x square))
+                                  rel-y (- (:y center) (:y square))
+                                  new-x (+ (:x center) rel-y)
+                                  new-y (+ (:y center) (- rel-x))]
+                              (assoc square :x new-x :y new-y)))]
+           (cond (some #(< (:x %) 0) new-piece) 
+                 (recur center (map #(update % :x inc) new-piece))
+                 (some #(> (:x %) (dec width)) new-piece)
+                 (recur center (map #(update % :x dec) new-piece))
+                 (on-other-piece? new-piece (:blocks @board))
+                 (recur center (map #(update % :y dec) new-piece))
+                 :else new-piece))))
 
 (defn fast-drop [])
 
@@ -84,19 +101,18 @@
                        (add-piece (assoc board :blocks (concat (:active board)
                                                                (:blocks board))))
                        (assoc board :active new-piece))))
-                     ;(if (or (some #(> (:y %) (dec height)) new-squares)
-                     ;        (on-other-piece? new-squares board))
-                     ;  (do (new-piece) {:active false :squares (:squares piece)})
-                     ;  {:active true :squares new-squares})))
 
 (defn swap [] (swap! board fall))
 
 (defonce fall-event (js/setInterval swap 200))
 
-(defonce key-event (.addEventListener js/document "keydown" keydown))
+(defonce key-event (.addEventListener js/window "keydown" keydown))
 
 (swap! board add-piece @board)
 
-(defn first-component [] (into [:div] (render @board)))
+(defn first-component [] (into [:div {:style {:outline "1px solid black" 
+                                              :width (* (inc width) size)
+                                              :height (* (inc height) size)}}] 
+                               (render @board)))
 
 (r/render-component [first-component] (.getElementById js/document "app"))
